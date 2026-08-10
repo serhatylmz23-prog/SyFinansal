@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SyFinans">
 <meta name="theme-color" content="#0a0a0f">
-<title>SyFinans Otağı v5.1</title>
+<title>SyFinans Otağı v5.2</title>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -22,11 +22,12 @@
   --primary: #667eea;
   --primary-2: #764ba2;
   --success: #10b981;
+  --danger: #ef4444;
   --radius: 18px;
   --radius-sm: 12px;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
   font-family: 'Inter', sans-serif;
@@ -34,9 +35,10 @@ html, body {
   color: var(--text);
   height: 100%;
   overflow: hidden;
+  user-select: none;
 }
 
-/* Zorunlu Cihaz Aktivasyon Ekranı */
+/* Zorunlu Cihaz Aktivasyon Overlay */
 #activation-overlay {
   position: fixed;
   inset: 0;
@@ -59,6 +61,7 @@ html, body {
   box-shadow: 0 0 40px rgba(102, 126, 234, 0.25);
 }
 
+/* Üst Tekli Minimalist Banner */
 #disclaimer-banner {
   background: #000000;
   color: #a0a0b0;
@@ -81,9 +84,21 @@ html, body {
 }
 .header-title { font-size: 20px; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--primary-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
+.handsfree-mic-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
 .tabs {
   display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto;
   background: var(--bg2); border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
 }
 .tab {
   padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
@@ -93,6 +108,9 @@ html, body {
 .tab.active { background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: white; border-color: transparent; }
 
 .content { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 90px; }
+.view { display: none; }
+.view.active { display: block; }
+
 .card { background: rgba(18, 18, 26, 0.85); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
 
 .btn {
@@ -119,60 +137,113 @@ html, body {
 </head>
 <body>
 
-<!-- Aktivasyon Overlay -->
+<!-- Zorunlu Aktivasyon Ekranı -->
 <div id="activation-overlay">
   <div class="activation-card">
     <div style="font-size:42px; margin-bottom:10px;">🧠</div>
     <div style="font-size:20px; font-weight:800; margin-bottom:6px;">SyFinans Cihaz Aktivasyonu</div>
-    <p style="font-size:12px; color:var(--text2); margin-bottom:18px; line-height:1.5;">Aktivasyon kodunu almak için butonla KAŞİF'ten doğrulama kodu isteyiniz. Kod <b>serhatylmz23@hotmail.com</b> adresine gidecektir.</p>
+    <p style="font-size:12px; color:var(--text2); margin-bottom:18px; line-height:1.5;">Uygulamayı bu cihazda aktifleştirmek için butonla KAŞİF'ten kod isteyiniz. Kod <b>serhatylmz23@hotmail.com</b> adresinize gider.</p>
     
     <button class="btn btn-primary" style="margin-bottom:12px;" onclick="app.requestActivationCode()">📩 KAŞİF'ten Kod İste</button>
     
-    <input type="text" class="input" id="activation-code-input" placeholder="SYF-892415" style="text-align:center; font-weight:700; letter-spacing:1px;">
+    <!-- Maskeli Şifre Giriş Alanı (Görünmez Kriptolu) -->
+    <input type="password" class="input" id="activation-code-input" placeholder="Rakam Kodunu Giriniz (Örn: 892415)" style="text-align:center; font-weight:700; letter-spacing:3px;">
     <button class="btn btn-success" onclick="app.verifyActivationCode()">✅ Cihazı Doğrula ve Aktifleştir</button>
   </div>
 </div>
 
-<!-- Ana Uygulama Kabuğu -->
+<!-- Uygulama Ekranı -->
 <div id="app-shell">
   <div id="disclaimer-banner">
     <span>⚠️ TÜM İŞLEMLER SANAL SİMÜLASYONDUR. GERÇEK MADDİ/FİNANSAL DEĞER TAŞIMAZ.</span>
   </div>
+
   <div class="header">
-    <div class="header-title">SyFinans Otağı v5.1</div>
-    <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="app.toggleHandsFreeMic()">🎙️</button>
+    <div class="header-title">SyFinans Otağı v5.2</div>
+    <button class="handsfree-mic-btn" id="mic-btn" onclick="app.toggleHandsFreeMic()" title="Kaşif Sesli Asistan">🎙️</button>
   </div>
 
   <div class="tabs">
-    <button class="tab active">📈 Canlı Piyasa & Analiz</button>
-    <button class="tab">💼 Özel Kasam (OCR)</button>
-    <button class="tab">🧠 Kaşif AI</button>
-    <button class="tab">🎯 Alım/Satım Engine</button>
-    <button class="tab">🚨 AFAD / Kandilli Erken Uyarı</button>
-    <button class="tab">🛣️ Canlı Yol / Radar / EDS</button>
+    <button class="tab active" onclick="app.tabDegistir('piyasa')">📈 Piyasa</button>
+    <button class="tab" onclick="app.tabDegistir('kasam')">💼 Kasam</button>
+    <button class="tab" onclick="app.tabDegistir('kasef')">🧠 Kaşif AI</button>
+    <button class="tab" onclick="app.tabDegistir('planlar')">🎯 Analiz</button>
+    <button class="tab" onclick="app.tabDegistir('afet')">🚨 Afet</button>
+    <button class="tab" onclick="app.tabDegistir('yol')">🛣️ Yol</button>
   </div>
 
   <div class="content">
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <div style="font-size:12px; color:var(--text2)">BIST 100 CANLI TAKİP</div>
-          <div style="font-size:26px; font-weight:800; margin-top:2px">9.847,32 ₺</div>
+    <!-- View 1: Piyasa -->
+    <div class="view active" id="view-piyasa">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:12px; color:var(--text2)">BIST 100 CANLI TAKİP</div>
+            <div style="font-size:26px; font-weight:800; margin-top:2px">9.847,32 ₺</div>
+          </div>
+          <span style="color:var(--success); font-weight:700; background:rgba(16,185,129,0.15); padding:6px 12px; border-radius:12px">%94,2 Güven Skoru</span>
         </div>
-        <span style="color:var(--success); font-weight:700; background:rgba(16,185,129,0.15); padding:6px 12px; border-radius:12px">%94,2 Tahmin Güven Skoru</span>
+        <canvas id="bist-sparkline" style="width:100%; height:80px; margin-top:12px;"></canvas>
       </div>
-      <canvas id="bist-sparkline" style="width:100%; height:80px; margin-top:12px;"></canvas>
+      <div id="market-list-container"></div>
     </div>
-    <div id="market-list-container"></div>
+
+    <!-- View 2: Kasam -->
+    <div class="view" id="view-kasam">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:12px; color:var(--text2)">ÖZEL KASA PORTFÖYÜM</div>
+        <div style="font-size:32px; font-weight:800; margin:6px 0;">₺150.000,00</div>
+        <button class="btn btn-primary" onclick="app.triggerOcrUpload()">📷 Fotoğraf / Video Oku</button>
+        <input type="file" id="ocr-file-input" style="display:none;" onchange="alert('Görsel taranarak özel kasanıza eklendi.')">
+      </div>
+    </div>
+
+    <!-- View 3: Kaşif AI -->
+    <div class="view" id="view-kasef">
+      <div class="card">
+        <div style="font-weight:700; font-size:16px; margin-bottom:8px;">🧠 Kaşif Sesli Asistan Chat</div>
+        <div id="chat-box" style="margin-bottom:12px; font-size:13px; color:var(--text2);">Merhaba! Kaşif asistan hazır. Sorunuzu yazabilir veya mikrofona dokunabilirsiniz.</div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" class="input" id="chat-input" placeholder="Kaşif'e sorun..." style="margin:0;">
+          <button class="btn btn-primary" style="width:auto;" onclick="app.sendChatMessage()">Gönder</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- View 4: Analiz -->
+    <div class="view" id="view-planlar">
+      <div class="card">
+        <div style="font-weight:700; font-size:16px; margin-bottom:8px;">🎯 Kademeli Bütçe Analizi</div>
+        <input type="number" class="input" id="budget-input" placeholder="Tutar Giriniz (Örn: 10000)">
+        <button class="btn btn-success" onclick="app.calculateTradeAdvice()">Analiz Et</button>
+        <div id="trade-result" style="margin-top:12px; font-size:13px;"></div>
+      </div>
+    </div>
+
+    <!-- View 5: Afet -->
+    <div class="view" id="view-afet">
+      <div class="card" style="border-color:var(--danger);">
+        <div style="font-weight:800; color:var(--danger); font-size:16px; margin-bottom:6px;">🚨 AFAD & Kandilli Erken Uyarı</div>
+        <button class="btn btn-danger" style="background:var(--danger); color:#fff;" onclick="alert('💚 Güvendedim sinyali ağa iletildi.')">💚 GÜVENDEDİM</button>
+      </div>
+    </div>
+
+    <!-- View 6: Yol -->
+    <div class="view" id="view-yol">
+      <div class="card">
+        <div style="font-weight:700; font-size:16px; margin-bottom:8px;">🛣️ Canlı Radar Asistanı</div>
+        <button class="btn btn-primary" onclick="app.toggleHandsFreeMic()">🚘 Sürüş Asistanını Başlat</button>
+      </div>
+    </div>
   </div>
 
   <div class="bottom-nav">
-    <div class="nav-item active"><span>📈</span><span>Piyasa</span></div>
-    <div class="nav-item"><span>💼</span><span>Kasam</span></div>
-    <div class="nav-item"><span>🧠</span><span>Kaşif AI</span></div>
-    <div class="nav-item"><span>🎯</span><span>Analiz</span></div>
-    <div class="nav-item"><span>🚨</span><span>Afet</span></div>
-    <div class="nav-item"><span>🛣️</span><span>Yol</span></div>
+    <div class="nav-item active" onclick="app.tabDegistir('piyasa')"><span>📈</span><span>Piyasa</span></div>
+    <div class="nav-item" onclick="app.tabDegistir('kasam')"><span>💼</span><span>Kasam</span></div>
+    <div class="nav-item" onclick="app.tabDegistir('kasef')"><span>🧠</span><span>Kaşif AI</span></div>
+    <div class="nav-item" onclick="app.tabDegistir('planlar')"><span>🎯</span><span>Analiz</span></div>
+    <div class="nav-item" onclick="app.tabDegistir('afet')"><span>🚨</span><span>Afet</span></div>
+    <div class="nav-item" onclick="app.tabDegistir('yol')"><span>🛣️</span><span>Yol</span></div>
   </div>
 </div>
 

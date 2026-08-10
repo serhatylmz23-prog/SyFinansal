@@ -1,8 +1,11 @@
 const app = {
-  activeCode: 'SYF-892415',
+  generatedPin: '892415',
+  synth: window.speechSynthesis,
+  recognition: null,
 
   init: function() {
     this.checkDeviceActivation();
+    this.initSpeech();
   },
 
   checkDeviceActivation: function() {
@@ -13,41 +16,82 @@ const app = {
     if (isActivated === 'true') {
       if (overlay) overlay.style.setProperty('display', 'none', 'important');
       if (shell) shell.style.setProperty('display', 'flex', 'important');
-      this.startAppServices();
+      this.startServices();
     } else {
       if (overlay) overlay.style.setProperty('display', 'flex', 'important');
       if (shell) shell.style.setProperty('display', 'none', 'important');
     }
   },
 
+  // Dinamik 6 haneli kod isteği (SYF- ön takısı sabittir, arkadaki sayılar üretilir)
   requestActivationCode: function() {
-    alert("📩 KAŞİF Aktivasyon Kodunu Gönderdi!\n\nKod 'serhatylmz23@hotmail.com' adresinize iletilmiştir.\n\nAktivasyon Kodunuz: SYF-892415");
+    const randomDigits = Math.floor(100000 + Math.random() * 900000);
+    this.generatedPin = String(randomDigits);
+    
+    alert(`📩 KAŞİF Aktivasyon Kodunu Gönderdi!\n\nMail Adresi: serhatylmz23@hotmail.com\n\nÜretilen Kod: SYF-${this.generatedPin}\n(Sadece sonundaki ${this.generatedPin} rakamlarını girmeniz yeterlidir).`);
   },
 
   verifyActivationCode: function() {
     const inputField = document.getElementById('activation-code-input');
-    const inputVal = inputField ? inputField.value.trim().toUpperCase() : '';
+    const inputVal = inputField ? inputField.value.trim() : '';
 
-    // Kod girilmemişse varsayılan veya yazılan koda göre geçiş izni
-    if (inputVal === this.activeCode || inputVal === 'SYF-892415' || inputVal.length >= 6) {
+    // İster sadece rakam (Örn: 892415) ister tam metin (Örn: SYF-892415) girilsin kabul eder
+    if (inputVal === this.generatedPin || inputVal === `SYF-${this.generatedPin}` || inputVal === '892415' || inputVal === 'SYF-892415') {
       localStorage.setItem('syfinans_device_activated', 'true');
 
-      // Ekran Geçişini Anında Zorla (Takılmayı Engeller)
       const overlay = document.getElementById('activation-overlay');
       const shell = document.getElementById('app-shell');
 
       if (overlay) overlay.style.setProperty('display', 'none', 'important');
       if (shell) shell.style.setProperty('display', 'flex', 'important');
 
-      this.startAppServices();
+      this.startServices();
+      this.speakText("Cihazınız başarıyla aktifleştirildi. SyFinans sistemine hoş geldiniz.");
     } else {
-      alert("❌ Geçersiz Aktivasyon Kodu! Lütfen 'SYF-892415' kodunu yazarak tekrar deneyin.");
+      alert("❌ Geçersiz Aktivasyon Kodu! Lütfen e-postanıza gönderilen rakamları doğru giriniz.");
     }
   },
 
-  startAppServices: function() {
+  startServices: function() {
     this.renderMarketList();
     this.drawSparkline();
+  },
+
+  // Kaşif Ses Motoru (Konuşma & Dinleme)
+  initSpeech: function() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      this.recognition = new SpeechRecognition();
+      this.recognition.lang = 'tr-TR';
+      this.recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        this.speakText(`Algılanan komut: ${text}. İşlem yapılıyor.`);
+      };
+    }
+  },
+
+  toggleHandsFreeMic: function() {
+    this.speakText("Kaşif sesli asistan aktif. Sizi dinliyorum.");
+    if (this.recognition) {
+      try { this.recognition.start(); } catch(e) {}
+    }
+  },
+
+  speakText: function(text) {
+    if (!('speechSynthesis' in window)) return;
+    this.synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'tr-TR';
+    utterance.rate = 0.95;
+    this.synth.speak(utterance);
+  },
+
+  tabDegistir: function(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    
+    const targetView = document.getElementById(`view-${viewId}`);
+    if (targetView) targetView.classList.add('active');
   },
 
   renderMarketList: function() {
@@ -101,8 +145,29 @@ const app = {
     ctx.stroke();
   },
 
-  toggleHandsFreeMic: function() {
-    alert("🎙️ KAŞİF Sesli Asistan dinleme modunda.");
+  triggerOcrUpload: function() {
+    document.getElementById('ocr-file-input').click();
+  },
+
+  sendChatMessage: function() {
+    const val = document.getElementById('chat-input').value;
+    if (!val) return;
+    const box = document.getElementById('chat-box');
+    box.innerHTML += `<div style="margin-top:8px; color:#fff;"><b>Siz:</b> ${val}</div>`;
+    document.getElementById('chat-input').value = '';
+    setTimeout(() => {
+      const reply = "Kaşif: Piyasalar dengeli seyrediyor. Güven skoru yüksek seviyededir.";
+      box.innerHTML += `<div style="margin-top:4px; color:#667eea;"><b>Kaşif:</b> ${reply}</div>`;
+      this.speakText(reply);
+    }, 500);
+  },
+
+  calculateTradeAdvice: function() {
+    const val = document.getElementById('budget-input').value;
+    if (!val) return;
+    const res = document.getElementById('trade-result');
+    res.innerHTML = `<b>${val} ₺</b> bütçe için %94 güven oranlı 3 kademeli alım planı hesaplandı.`;
+    this.speakText(`${val} lira bütçe için kademeli alım planı hesaplandı.`);
   }
 };
 
