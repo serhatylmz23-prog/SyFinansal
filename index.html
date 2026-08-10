@@ -1,82 +1,178 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SyFinans">
+<meta name="theme-color" content="#0a0a0f">
 <title>SyFinans Otağı v5.1</title>
+
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 :root {
-  --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a25;
-  --border: rgba(255, 255, 255, 0.1); --text: #e8e8ef; --text2: #a0a0b0;
-  --primary: #667eea; --primary-2: #764ba2; --success: #10b981; --danger: #ef4444;
+  --bg: #0a0a0f;
+  --bg2: #12121a;
+  --bg3: #1a1a25;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e8e8ef;
+  --text2: #a0a0b0;
+  --primary: #667eea;
+  --primary-2: #764ba2;
+  --success: #10b981;
+  --radius: 18px;
+  --radius-sm: 12px;
 }
-* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
-body { background: var(--bg); color: var(--text); height:100vh; overflow:hidden; }
 
-/* Aktivasyon Ekranı */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Zorunlu Cihaz Aktivasyon Ekranı */
 #activation-overlay {
-  position:fixed; inset:0; background:var(--bg); z-index:99999;
-  display:flex; align-items:center; justify-content:center; padding:20px;
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
 }
-.act-card {
-  background:var(--bg2); border:1px solid var(--primary); border-radius:18px;
-  padding:24px; max-width:380px; width:100%; text-align:center; box-shadow:0 0 30px rgba(102,126,234,0.3);
+.activation-card {
+  background: var(--bg2);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 0 40px rgba(102, 126, 234, 0.25);
 }
-.input-field {
-  width:100%; padding:12px; border-radius:10px; border:1px solid var(--border);
-  background:var(--bg3); color:#fff; margin:10px 0; text-align:center; font-weight:700; outline:none;
-}
-.btn {
-  width:100%; padding:12px; border-radius:10px; border:none; font-weight:600; cursor:pointer; margin-bottom:8px;
-}
-.btn-primary { background:linear-gradient(135deg,var(--primary),var(--primary-2)); color:#fff; }
-.btn-success { background:var(--success); color:#fff; }
 
-/* Uygulama Ekranı */
-#app-shell { display:none; flex-direction:column; height:100vh; }
-.header { padding:14px 20px; background:var(--bg2); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-.header h1 { font-size:18px; color:var(--primary); }
-.banner { background:#000; color:#a0a0b0; font-size:11px; padding:6px 12px; text-align:center; border-bottom:1px solid var(--border); }
-.content { flex:1; padding:16px; overflow-y:auto; }
-.card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px; }
-.tabs { display:flex; gap:8px; padding:10px; background:var(--bg2); overflow-x:auto; border-bottom:1px solid var(--border); }
-.tab { padding:6px 14px; border-radius:16px; background:var(--bg3); color:var(--text2); font-size:12px; border:1px solid var(--border); white-space:nowrap; }
-.tab.active { background:var(--primary); color:#fff; }
+#disclaimer-banner {
+  background: #000000;
+  color: #a0a0b0;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+}
+
+#app-shell { display: none; flex-direction: column; height: 100dvh; width: 100%; }
+
+.header {
+  padding: 12px 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-title { font-size: 20px; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--primary-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+.tabs {
+  display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--bg3); color: var(--text2); font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.tab.active { background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: white; border-color: transparent; }
+
+.content { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 90px; }
+.card { background: rgba(18, 18, 26, 0.85); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+
+.btn {
+  width: 100%; padding: 12px 18px; border-radius: var(--radius-sm); border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: white; }
+.btn-success { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
+
+.input {
+  width: 100%; padding: 12px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+  font-size: 14px; margin-bottom: 10px; outline: none;
+}
+
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; display: flex;
+  justify-content: space-around; padding: 10px 0;
+  background: var(--bg2); border-top: 1px solid var(--border); z-index: 100;
+}
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text2); font-size: 10px; font-weight: 600; cursor: pointer; }
+.nav-item.active { color: var(--primary); }
 </style>
 </head>
 <body>
 
+<!-- Aktivasyon Overlay -->
 <div id="activation-overlay">
-  <div class="act-card">
-    <div style="font-size:36px; margin-bottom:10px;">🔐</div>
-    <h2 style="font-size:18px; margin-bottom:6px;">SyFinans Cihaz Aktivasyonu</h2>
-    <p style="font-size:12px; color:var(--text2); margin-bottom:16px;">Aktivasyon kodu <b>serhatylmz23@hotmail.com</b> adresine gönderilecektir.</p>
-    <button class="btn btn-primary" onclick="app.requestActivationCode()">📩 Aktivasyon Kodu İste</button>
-    <input type="text" class="input-field" id="activation-code-input" placeholder="SYF-XXXXXX">
-    <button class="btn btn-success" onclick="app.verifyActivationCode()">✅ Cihazı Aktifleştir</button>
+  <div class="activation-card">
+    <div style="font-size:42px; margin-bottom:10px;">🧠</div>
+    <div style="font-size:20px; font-weight:800; margin-bottom:6px;">SyFinans Cihaz Aktivasyonu</div>
+    <p style="font-size:12px; color:var(--text2); margin-bottom:18px; line-height:1.5;">Aktivasyon kodunu almak için butonla KAŞİF'ten doğrulama kodu isteyiniz. Kod <b>serhatylmz23@hotmail.com</b> adresine gidecektir.</p>
+    
+    <button class="btn btn-primary" style="margin-bottom:12px;" onclick="app.requestActivationCode()">📩 KAŞİF'ten Kod İste</button>
+    
+    <input type="text" class="input" id="activation-code-input" placeholder="SYF-892415" style="text-align:center; font-weight:700; letter-spacing:1px;">
+    <button class="btn btn-success" onclick="app.verifyActivationCode()">✅ Cihazı Doğrula ve Aktifleştir</button>
   </div>
 </div>
 
+<!-- Ana Uygulama Kabuğu -->
 <div id="app-shell">
-  <div class="banner">⚠️ TÜM İŞLEMLER SANAL SİMÜLASYONDUR. GERÇEK MADDİ DEĞER TAŞIMAZ.</div>
+  <div id="disclaimer-banner">
+    <span>⚠️ TÜM İŞLEMLER SANAL SİMÜLASYONDUR. GERÇEK MADDİ/FİNANSAL DEĞER TAŞIMAZ.</span>
+  </div>
   <div class="header">
-    <h1>SyFinans Otağı v5.1</h1>
+    <div class="header-title">SyFinans Otağı v5.1</div>
     <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="app.toggleHandsFreeMic()">🎙️</button>
   </div>
+
   <div class="tabs">
-    <div class="tab active">📈 Piyasa</div>
-    <div class="tab">💼 Kasam</div>
-    <div class="tab">🧠 Kaşif AI</div>
-    <div class="tab">🎯 Analiz</div>
-    <div class="tab">🚨 Afet</div>
-    <div class="tab">🛣️ Yol</div>
+    <button class="tab active">📈 Canlı Piyasa & Analiz</button>
+    <button class="tab">💼 Özel Kasam (OCR)</button>
+    <button class="tab">🧠 Kaşif AI</button>
+    <button class="tab">🎯 Alım/Satım Engine</button>
+    <button class="tab">🚨 AFAD / Kandilli Erken Uyarı</button>
+    <button class="tab">🛣️ Canlı Yol / Radar / EDS</button>
   </div>
+
   <div class="content">
     <div class="card">
-      <div style="font-size:12px; color:var(--text2);">BIST 100 CANLI TAKİP</div>
-      <div style="font-size:24px; font-weight:800; margin-top:4px;">9.847,32 ₺</div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:12px; color:var(--text2)">BIST 100 CANLI TAKİP</div>
+          <div style="font-size:26px; font-weight:800; margin-top:2px">9.847,32 ₺</div>
+        </div>
+        <span style="color:var(--success); font-weight:700; background:rgba(16,185,129,0.15); padding:6px 12px; border-radius:12px">%94,2 Tahmin Güven Skoru</span>
+      </div>
+      <canvas id="bist-sparkline" style="width:100%; height:80px; margin-top:12px;"></canvas>
     </div>
+    <div id="market-list-container"></div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active"><span>📈</span><span>Piyasa</span></div>
+    <div class="nav-item"><span>💼</span><span>Kasam</span></div>
+    <div class="nav-item"><span>🧠</span><span>Kaşif AI</span></div>
+    <div class="nav-item"><span>🎯</span><span>Analiz</span></div>
+    <div class="nav-item"><span>🚨</span><span>Afet</span></div>
+    <div class="nav-item"><span>🛣️</span><span>Yol</span></div>
   </div>
 </div>
 
