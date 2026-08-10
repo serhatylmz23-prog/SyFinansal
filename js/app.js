@@ -445,7 +445,7 @@ class ActivationManager {
 
   goToPinSetup() {
     document.getElementById('activation-screen').style.display = 'none';
-    app.showPinSetup();
+    app.showApp();
   }
 
   verify() {
@@ -454,7 +454,7 @@ class ActivationManager {
       localStorage.setItem('syf_activated', 'true');
       document.getElementById('activation-screen').style.display = 'none';
       app.toast('🔓 Aktivasyon başarılı', 'success');
-      app.showPinSetup();
+      app.showApp();
     } else {
       app.toast('❌ Geçersiz aktivasyon kodu', 'error');
       const inputEl = document.getElementById('activation-input');
@@ -466,11 +466,28 @@ class ActivationManager {
 
 // ============================================
 // PIN HASH YARDIMCISI (SHA-256 - düz metin saklamamak için)
+// Bazı tarayıcılar (örn. Firefox) file:// üzerinden crypto.subtle'ı
+// devre dışı bırakır ("güvenli bağlam" değil) — bu durumda basit bir
+// yedek hash'e düşülür, PIN akışı asla sessizce takılıp kalmaz.
 // ============================================
 async function hashPin(pin) {
-  const enc = new TextEncoder().encode('syf_salt_v1:' + pin);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  try {
+    if (window.crypto && window.crypto.subtle) {
+      const enc = new TextEncoder().encode('syf_salt_v1:' + pin);
+      const buf = await window.crypto.subtle.digest('SHA-256', enc);
+      return 'sha256:' + Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (e) {
+    console.warn('[PIN] crypto.subtle kullanılamadı, yedek hash kullanılıyor:', e);
+  }
+  // Yedek: basit ama düz metin olmayan bir hash (FNV-1a benzeri)
+  let h = 2166136261;
+  const salted = 'syf_salt_v1:' + pin;
+  for (let i = 0; i < salted.length; i++) {
+    h ^= salted.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return 'fnv1a:' + (h >>> 0).toString(16);
 }
 
 // ============================================
@@ -571,43 +588,52 @@ class PinManager {
       return;
     }
 
-    if (this.mode === 'setup') {
-      if (!this.tempPin) {
-        this.tempPin = this.pinBuffer;
-        this.pinBuffer = '';
-        this.updateDots();
-        document.getElementById('pin-hint').textContent = 'PIN\'i tekrar girin (Doğrulama)';
+    try {
+      if (this.mode === 'setup') {
+        if (!this.tempPin) {
+          this.tempPin = this.pinBuffer;
+          this.pinBuffer = '';
+          this.updateDots();
+          document.getElementById('pin-hint').textContent = 'PIN\'i tekrar girin (Doğrulama)';
+        } else {
+          if (this.pinBuffer === this.tempPin) {
+            const hashed = await hashPin(this.pinBuffer);
+            DataStore.set('pin', hashed);
+            document.getElementById('pin-setup-screen').style.display = 'none';
+            app.toast('🔐 PIN başarıyla belirlendi', 'success');
+            app.showApp();
+          } else {
+            app.toast('❌ PIN eşleşmiyor. Tekrar deneyin.', 'error');
+            this.tempPin = '';
+            this.pinBuffer = '';
+            this.updateDots();
+            this.shakeDots();
+          }
+        }
       } else {
-        if (this.pinBuffer === this.tempPin) {
-          const hashed = await hashPin(this.pinBuffer);
-          DataStore.set('pin', hashed);
-          document.getElementById('pin-setup-screen').style.display = 'none';
-          app.toast('🔐 PIN başarıyla belirlendi', 'success');
+        const savedPin = DataStore.get('pin');
+        const inputHash = await hashPin(this.pinBuffer);
+        // Eski sürümlerden kalma düz metin PIN'lerle de geriye dönük uyumluluk
+        if (inputHash === savedPin || this.pinBuffer === savedPin) {
+          if (this.pinBuffer === savedPin && inputHash !== savedPin) {
+            DataStore.set('pin', inputHash); // sessizce hash'e yükselt
+          }
+          document.getElementById('pin-login-screen').style.display = 'none';
           app.showApp();
         } else {
-          app.toast('❌ PIN eşleşmiyor. Tekrar deneyin.', 'error');
-          this.tempPin = '';
+          app.toast('❌ Yanlış PIN', 'error');
           this.pinBuffer = '';
           this.updateDots();
           this.shakeDots();
         }
       }
-    } else {
-      const savedPin = DataStore.get('pin');
-      const inputHash = await hashPin(this.pinBuffer);
-      // Eski sürümlerden kalma düz metin PIN'lerle de geriye dönük uyumluluk
-      if (inputHash === savedPin || this.pinBuffer === savedPin) {
-        if (this.pinBuffer === savedPin && inputHash !== savedPin) {
-          DataStore.set('pin', inputHash); // sessizce hash'e yükselt
-        }
-        document.getElementById('pin-login-screen').style.display = 'none';
-        app.showApp();
-      } else {
-        app.toast('❌ Yanlış PIN', 'error');
-        this.pinBuffer = '';
-        this.updateDots();
-        this.shakeDots();
-      }
+    } catch (err) {
+      console.error('[PIN] Beklenmeyen hata:', err);
+      app.toast('⚠️ Bir sorun oluştu, tekrar deneyin', 'error');
+      // Ekranda sessizce donmak yerine kullanıcıyı asla kilitli bırakma: PIN'i sıfırla
+      this.pinBuffer = '';
+      this.tempPin = '';
+      this.updateDots();
     }
   }
 
@@ -679,9 +705,17 @@ class DataStore {
     catch { return def; }
   }
   static set(key, val) {
-    localStorage.setItem('syf_' + key, JSON.stringify(val));
+    try {
+      localStorage.setItem('syf_' + key, JSON.stringify(val));
+      return true;
+    } catch (e) {
+      console.warn('[DataStore] Yazılamadı:', key, e);
+      return false;
+    }
   }
-  static remove(key) { localStorage.removeItem('syf_' + key); }
+  static remove(key) {
+    try { localStorage.removeItem('syf_' + key); } catch (e) { console.warn('[DataStore] Silinemedi:', key, e); }
+  }
 }
 
 // ============================================
@@ -2376,20 +2410,9 @@ class AyarlarModule {
 
       <div class="card">
         <div class="settings-group">
-          <div class="settings-group-title">🔐 PIN & Biyometrik</div>
-          <div class="settings-row">
-            <div>
-              <div class="settings-label">PIN Değiştir</div>
-              <div class="settings-desc">Giriş PIN kodunuzu güncelleyin</div>
-            </div>
-            <button class="btn btn-secondary btn-sm" style="width:auto" onclick="app.Ayarlar.changePin()">Değiştir</button>
-          </div>
-          <div class="settings-row">
-            <div>
-              <div class="settings-label">Biyometrik Giriş</div>
-              <div class="settings-desc">Face ID / Parmak izi</div>
-            </div>
-            <div class="toggle ${DataStore.get('biometric_enabled', false) ? 'on' : ''}" onclick="app.Ayarlar.toggleBiometric()"></div>
+          <div class="settings-group-title">🔒 Güvenlik</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;padding:6px 0">
+            Uygulama içi PIN kaldırıldı — erişim güvenliği artık cihazınızın kendi ekran kilidine (PIN/desen/Face ID/parmak izi) bırakılmıştır. Cihazınızda bir ekran kilidi olduğundan emin olun.
           </div>
         </div>
       </div>
@@ -2484,23 +2507,6 @@ class AyarlarModule {
     this.render();
   }
 
-  changePin() {
-    const newPin = prompt('Yeni PIN (4-6 hane):');
-    if (newPin && /^\d{4,6}$/.test(newPin)) {
-      DataStore.set('pin', newPin);
-      app.toast('🔐 PIN güncellendi', 'success');
-    } else {
-      app.toast('❌ Geçersiz PIN formatı', 'error');
-    }
-  }
-
-  toggleBiometric() {
-    const enabled = !DataStore.get('biometric_enabled', false);
-    DataStore.set('biometric_enabled', enabled);
-    app.toast(enabled ? '🔓 Biyometrik giriş aktif' : '🔒 Biyometrik giriş devre dışı', 'info');
-    this.render();
-  }
-
   resetData() {
     if (!confirm('⚠️ TÜM verileriniz silinecek! Emin misiniz?')) return;
     const keys = Object.keys(localStorage).filter(k => k.startsWith('syf_'));
@@ -2565,25 +2571,19 @@ class App {
     if (!DataStore.get('notes')) DataStore.set('notes', []);
     if (!DataStore.get('safe_people')) DataStore.set('safe_people', []);
 
-    // GİRİŞ AKIŞI (Düzeltilmiş)
+    // GİRİŞ AKIŞI — PIN kaldırıldı, güvenlik cihazın kendi ekran kilidine bırakıldı.
+    // Eski sürümden kalma PIN varsa temizleniyor (bir daha sorulmayacak).
+    if (DataStore.get('pin')) DataStore.remove('pin');
+
     const isActivated = localStorage.getItem('syf_activated') === 'true';
 
     if (!isActivated) {
-      // 1. Aktivasyon ekranı
+      // 1. Aktivasyon ekranı (cihaz kaydı) — PIN adımı yok, aktivasyon bitince direkt uygulama açılır
       this.activation.showActivationScreen();
       document.getElementById('app-shell').style.display = 'none';
     } else {
-      // Aktive edilmiş
-      const savedPin = DataStore.get('pin');
-      if (savedPin) {
-        // PIN var → Giriş ekranı
-        this.pin.showLogin();
-        document.getElementById('app-shell').style.display = 'none';
-      } else {
-        // PIN yok → PIN kurulumu
-        this.pin.showSetup();
-        document.getElementById('app-shell').style.display = 'none';
-      }
+      // Aktive edilmiş → doğrudan uygulama
+      this.showApp();
     }
 
     // Header saat
@@ -2609,10 +2609,6 @@ class App {
         document.body.classList.add('has-banner');
       }
     }, 2000);
-  }
-
-  showPinSetup() {
-    this.pin.showSetup();
   }
 
   showApp() {
@@ -2652,18 +2648,30 @@ class App {
     const fab = document.querySelector('.fab');
     if (fab) fab.style.display = (tab === 'kasam' || tab === 'piyasa') ? 'flex' : 'none';
 
-    switch(tab) {
-      case 'piyasa': this.Piyasa.render(); break;
-      case 'kasam': this.Kasam.render(); break;
-      case 'kasef': this.renderKasef(); break;
-      case 'planlar': this.Planlar.render(); break;
-      case 'afet': this.Afet.render(); break;
-      case 'yol': this.Yol.render(); break;
-      case 'ekonomi': this.Ekonomi.render(); break;
-      case 'temettu': this.Temettu.render(); break;
-      case 'doviz': this.Doviz.render(); break;
-      case 'hava': this.Hava.render(); break;
-      case 'ayarlar': this.Ayarlar.render(); break;
+    try {
+      switch(tab) {
+        case 'piyasa': this.Piyasa.render(); break;
+        case 'kasam': this.Kasam.render(); break;
+        case 'kasef': this.renderKasef(); break;
+        case 'planlar': this.Planlar.render(); break;
+        case 'afet': this.Afet.render(); break;
+        case 'yol': this.Yol.render(); break;
+        case 'ekonomi': this.Ekonomi.render(); break;
+        case 'temettu': this.Temettu.render(); break;
+        case 'doviz': this.Doviz.render(); break;
+        case 'hava': this.Hava.render(); break;
+        case 'ayarlar': this.Ayarlar.render(); break;
+      }
+    } catch (err) {
+      console.error(`[Tab: ${tab}] Render hatası:`, err);
+      this.toast(`⚠️ ${tab} sekmesi yüklenirken bir sorun oluştu`, 'error');
+      if (target) {
+        target.innerHTML = `<div class="card" style="text-align:center;padding:32px 16px;color:var(--text2)">
+          <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+          <div style="font-weight:700;margin-bottom:6px">Bu bölüm yüklenemedi</div>
+          <div style="font-size:13px">Tekrar denemek için sekmeyi kapatıp açabilirsiniz.</div>
+        </div>`;
+      }
     }
 
     window.scrollTo(0, 0);
@@ -2761,6 +2769,24 @@ window.Planlar = {
 // ============================================
 // BAŞLAT
 // ============================================
+// ============================================
+// KÜRESEL GÜVENLİK AĞI
+// Hiçbir hata artık sessizce "boş/donuk ekrana" düşmesin —
+// en azından konsola yazılır ve mümkünse kullanıcıya bildirilir.
+// ============================================
+window.addEventListener('error', (e) => {
+  console.error('[Global Hata]', e.error || e.message);
+  if (window.app && typeof window.app.toast === 'function') {
+    try { window.app.toast('⚠️ Beklenmeyen bir hata oluştu (detay: konsol)', 'error'); } catch {}
+  }
+});
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[Yakalanmamış Promise Hatası]', e.reason);
+  if (window.app && typeof window.app.toast === 'function') {
+    try { window.app.toast('⚠️ Bir işlem tamamlanamadı (detay: konsol)', 'error'); } catch {}
+  }
+});
+
 const app = new App();
 window.app = app;
 
