@@ -1,0 +1,129 @@
+{
+  "name": "SyFinansOtağı",
+  "short_name": "SyFinans",
+  "description": "Finansal veri takip ve portföy yönetim uygulaması - Eğlence amaçlı sanal veriler içerir.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait-primary",
+  "scope": "./",
+  "categories": [
+    "finance",
+    "productivity",
+    "utilities"
+  ],
+  "lang": "tr",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "./icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/maskable-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Piyasa",
+      "short_name": "Piyasa",
+      "description": "Canlı piyasa verileri",
+      "url": "./index.html?tab=piyasa",
+      "icons": [
+        {
+          "src": "./icons/shortcut-piyasa.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Kasam",
+      "short_name": "Kasam",
+      "description": "Portföyüm",
+      "url": "./index.html?tab=kasam",
+      "icons": [
+        {
+          "src": "./icons/shortcut-kasam.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Kaşif",
+      "short_name": "Kaşif",
+      "description": "AI Finans Danışmanı",
+      "url": "./index.html?tab=kasef",
+      "icons": [
+        {
+          "src": "./icons/shortcut-kasef.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "id": "./index.html"
+}
